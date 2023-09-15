@@ -11,7 +11,7 @@ use App\Models\Car;
 use App\Models\CarParking;
 use App\Http\Requests\CreateParkingRequest;
 use App\Services\ParkingService;
-use App\Jobs\UnlockParkingSlot; 
+use App\Jobs\UnlockParkingSlotJob; 
 
 class ParkingSlotController extends Controller
 {
@@ -53,16 +53,32 @@ class ParkingSlotController extends Controller
         );
 
         // Schedule the second method to run after 5 minutes
-        // dispatch(new UnlockParkingSlot())->delay(now()->addMinutes(1));
+        dispatch(new UnlockParkingSlotJob())->delay(now()->addMinutes(5));
 
         // Redirect to home page
         return redirect()->route('show-parking-form');
     }
 
+    public function getRemovedParking()
+    {
+        // Retrieve the carParkId from the storage mechanism (e.g., cache, database)
+        $carParks = Cache::get('carParkIds');
+
+        $carParkings = CarParking::all();
+
+        if($carParks && count($carParks) > 0) {
+            // Clear the cache
+            Cache::forget('carParkIds');
+            return response()->json(["success"=>true, "park_data"=>$carParks, "carParkings"=>$carParkings ]);
+        } else {
+            return response()->json(["success"=>false, "carParkings"=>$carParkings ]);
+        }
+    }
+
     public function unlockParkCar()
     {
         $currentTimestamp = Carbon::now();
-        $minutesAgo = $currentTimestamp->subMinutes(5);
+        $minutesAgo = $currentTimestamp->subMinutes(1);
 
         $carParkings = CarParking::where('created_at', '<=', $minutesAgo)->get();
 
@@ -71,7 +87,6 @@ class ParkingSlotController extends Controller
             {
                 CarParking::where('id', $carParking->id)->delete();
             }
-    
         }
         // Redirect to home page
         return redirect()->route('show-parking-form');

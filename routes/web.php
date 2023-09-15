@@ -20,4 +20,6 @@ Route::get('/', function () {
 
 Route::get('/park-car', [ParkingSlotController::class, 'showParkingForm'])->name('show-parking-form');
 Route::post('/park-car-post', [ParkingSlotController::class, 'parkCar'])->name('park-car');
-Route::get('/unlock-car', [ParkingSlotController::class, 'unlockParkCar'])->name('unlock-car');
+Route::get('/get-unlock-parking', [ParkingSlotController::class, 'getRemovedParking'])->name('get-unlock-parking');
+// Route::get('/unlock-car', [ParkingSlotController::class, 'unlockParkCar'])->name('unlock-car');
+

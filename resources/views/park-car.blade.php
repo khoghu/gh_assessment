@@ -37,7 +37,7 @@
         <select name="car_id" id="car" style="margin-top:5px;" required>
             <option value="" disable selected>Select a car</option>
             @foreach($cars as $car)
-                <option value="{{ $car->id }}" @if($car->latestParking) disabled @endif>{{ $car->car_no }} @if($car->latestParking) (Occupied) @endif</option>
+                <option value="{{ $car->id }}" car_id="{{ $car->id }}" @if($car->latestParking) disabled @endif>{{ $car->car_no }} @if($car->latestParking) (Occupied) @endif</option>
             @endforeach
         </select>
         <br/>
@@ -47,7 +47,7 @@
         <select name="parking_slot_id" id="parking-slot" style="margin-top:5px;" required>
             <option value="" disable selected>Select a Parking slot</option>
             @foreach($parkingSlots as $slot)
-                <option value="{{ $slot->id }}" @if($slot->latestParking) disabled @endif>{{ $slot->slot }} @if($slot->latestParking) (Occupied) @endif</option>
+                <option value="{{ $slot->id }}" parking_slot="{{ $slot->id }}" @if($slot->latestParking) disabled @endif>{{ $slot->slot }} @if($slot->latestParking) (Occupied) @endif</option>
             @endforeach
         </select>
         <br/>
@@ -65,7 +65,7 @@
             <th>Parking Time</th>
         </tr>
         @foreach($carParkings as $carParking)
-        <tr >
+        <tr parkSlotId="{{ $carParking->id }}">
             <td>{{ $carParking->car->car_no }}</td>
             <td>{{ $carParking->parking_slot->slot }}</td>
             <td>{{ \Carbon\Carbon::create($carParking->updated_at)->addHour(8)->format('Y-m-d H:i:s') }}</td>
@@ -76,13 +76,32 @@
 
     <script>
         $(document).ready(function() {
-            setTimeout(function() {
+            // Set up a setInterval to execute a function every 30000 milliseconds (30 second)
+            var intervalId = setInterval(function() {
                 $.ajax({
-                    url: "http://127.0.0.1:8000/unlock-car",
+                    url: "http://127.0.0.1:8000/get-unlock-parking",
                     type: 'GET',
                     dataType: "JSON",
                     success: function(data) {
-                        location.reload();
+                        if(data.success){
+                            data.park_data.forEach(function(car_park) {
+                                var car_text = $('option[car_id="'+ car_park.car_id +'"]').text().replace(" (Occupied)", "");
+                                $('option[car_id="'+ car_park.car_id +'"]').text(car_text)
+                                $('option[car_id="'+ car_park.car_id +'"]').prop("disabled", false);
+                                var parking_slot_text = $('option[parking_slot="'+ car_park.parking_slot_id +'"]').text().replace(" (Occupied)", "");
+                                $('option[parking_slot="'+ car_park.parking_slot_id +'"]').text(parking_slot_text)
+                                $('option[parking_slot="'+ car_park.parking_slot_id +'"]').prop("disabled", false);
+                                $('tr[parkSlotId="'+ car_park.car_park_id +'"]').remove()
+                            });           
+                            if(data.carParkings.length == 0){
+                                $("#carpark").remove()
+                                clearInterval(intervalId)
+                            } 
+                        } else {
+                            if(data.carParkings.length == 0){
+                                clearInterval(intervalId)
+                            }
+                        }
                     },
                     error:function(error){
                         console.log("fail");
@@ -90,7 +109,8 @@
                         console.log(error);
                     }
                 });
-            }, 5 * 60 * 1000); // 5 minutes in milliseconds
+            }, 5000);
+            //5 * 60 * 1000
         });
     </script>
 </body>
